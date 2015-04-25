@@ -96,6 +96,7 @@ describe Polipus::Storage::CassandraStore do
     expect(@storage.exists?(p_other)).to be_truthy
     @storage.include_query_string_in_uuid = true
     expect(@storage.exists?(p_other)).to be_falsey
+    @storage.include_query_string_in_uuid = false
     @storage.remove p_other
   end
 
