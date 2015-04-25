@@ -121,7 +121,6 @@ module Polipus
       end
 
       def load_page(data)
-        puts data
         json = Zlib::Inflate.inflate(data['page'])
         hash = MultiJson.decode(json)
         page = Page.from_hash(hash)
