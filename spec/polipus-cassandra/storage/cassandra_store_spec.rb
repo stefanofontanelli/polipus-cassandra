@@ -6,7 +6,7 @@ require 'spec_helper'
 
 describe Polipus::Storage::CassandraStore do
   before(:all)do
-    @logger = Logger.new STDOUT
+    @logger = Logger.new(STDOUT).tap { |logger| logger.level = Logger::WARN }
     @cluster = Cassandra.cluster hosts: ['127.0.0.1'], logger: @logger
     @keyspace = 'polipus_cassandra_test'
     @table = 'cassandra_store_test'
