@@ -43,7 +43,7 @@ module Polipus
           table_ = [keyspace, table].compact.join '.'
           uuid_ = uuid(page)
           obj = page.to_hash
-          @except.each { |e| obj.delete e.to_s }
+          Array(@except).each { |e| obj.delete e.to_s }
           json = MultiJson.encode(obj)
           statement = "INSERT INTO #{table_} (uuid, page) VALUES (?, ?);"
           session.execute(session.prepare(statement),
