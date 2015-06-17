@@ -25,7 +25,7 @@ describe Polipus::Storage::CassandraStore do
   end
 
   it 'should store a page' do
-    p = page_factory 'http://www.google.com', code: 200, body: '<html></html>'
+    p = page_factory 'http://www.google.com'
     uuid = @storage.add p
     expect(uuid).to eq('ed646a3334ca891fd3467db131372140')
     p = @storage.get p
@@ -34,7 +34,7 @@ describe Polipus::Storage::CassandraStore do
   end
 
   it 'should update a page' do
-    p = page_factory 'http://www.google.com', code: 301, body: '<html></html>'
+    p = page_factory 'http://www.google.com', code: 301
     @storage.add p
     p = @storage.get p
     expect(p.code).to eq(301)
@@ -48,14 +48,14 @@ describe Polipus::Storage::CassandraStore do
   end
 
   it 'should delete a page' do
-    p = page_factory 'http://www.google.com', code: 301, body: '<html></html>'
+    p = page_factory 'http://www.google.com', code: 301
     @storage.remove p
     expect(@storage.get(p)).to be_nil
   end
 
   it 'should store a page removing a query string from the uuid generation' do
-    p = page_factory 'http://www.asd.com/?asd=lol', code: 200, body: '<html></html>'
-    p_no_query = page_factory 'http://www.asd.com/?asdas=dasda&adsda=1', code: 200, body: '<html></html>'
+    p = page_factory 'http://www.asd.com/?asd=lol'
+    p_no_query = page_factory 'http://www.asd.com/?asdas=dasda&adsda=1'
     @storage.include_query_string_in_uuid = false
     @storage.add p
     expect(@storage.exists?(p_no_query)).to be_truthy
@@ -63,8 +63,8 @@ describe Polipus::Storage::CassandraStore do
   end
 
   it 'should store a page removing a query string from the uuid generation no ending slash' do
-    p = page_factory 'http://www.asd.com?asd=lol', code: 200, body: '<html></html>'
-    p_no_query = page_factory 'http://www.asd.com', code: 200, body: '<html></html>'
+    p = page_factory 'http://www.asd.com?asd=lol'
+    p_no_query = page_factory 'http://www.asd.com'
     @storage.include_query_string_in_uuid = false
     @storage.add p
     expect(@storage.exists?(p_no_query)).to be_truthy
@@ -72,7 +72,7 @@ describe Polipus::Storage::CassandraStore do
   end
 
   it 'should store a page with user data associated' do
-    p = page_factory 'http://www.user.com',  code: 200, body: '<html></html>'
+    p = page_factory 'http://www.user.com'
     p.user_data.name = 'Test User Data'
     @storage.add p
     expect(@storage.exists?(p)).to be_truthy
@@ -91,11 +91,11 @@ describe Polipus::Storage::CassandraStore do
 
   it 'should return false if a doc not exists' do
     @storage.include_query_string_in_uuid = false
-    p_other  = page_factory 'http://www.asdrrrr.com', code: 200, body: '<html></html>'
+    p_other  = page_factory 'http://www.asdrrrr.com'
     expect(@storage.exists?(p_other)).to be_falsey
     @storage.add p_other
     expect(@storage.exists?(p_other)).to be_truthy
-    p_other  = page_factory 'http://www.asdrrrr.com?trk=asd-lol', code: 200, body: '<html></html>'
+    p_other  = page_factory 'http://www.asdrrrr.com?trk=asd-lol'
     expect(@storage.exists?(p_other)).to be_truthy
     @storage.include_query_string_in_uuid = true
     expect(@storage.exists?(p_other)).to be_falsey
@@ -104,7 +104,7 @@ describe Polipus::Storage::CassandraStore do
   end
 
   it 'should set page.fetched_at based on the id creation' do
-    p = page_factory 'http://www.user-doojo.com',  code: 200, body: '<html></html>'
+    p = page_factory 'http://www.user-doojo.com'
     @storage.add p
     expect(p.fetched_at).to be_nil
     p = @storage.get p
@@ -113,7 +113,7 @@ describe Polipus::Storage::CassandraStore do
   end
 
   it 'should NOT set page.fetched_at if already present' do
-    p = page_factory 'http://www.user-doojooo.com',  code: 200, body: '<html></html>'
+    p = page_factory 'http://www.user-doojooo.com'
     p.fetched_at = 10
     @storage.add p
     p = @storage.get p
