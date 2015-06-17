@@ -10,9 +10,12 @@ describe Polipus::Storage::CassandraStore do
     @cluster = Cassandra.cluster hosts: ['127.0.0.1'], logger: @logger
     @keyspace = 'polipus_cassandra_test'
     @table = 'cassandra_store_test'
-    @storage = Polipus::Storage::CassandraStore.new(cluster: @cluster,
-                                                    keyspace: @keyspace,
-                                                    table: @table)
+    @storage = Polipus::Storage::CassandraStore.new(
+      cluster: @cluster,
+      keyspace: @keyspace,
+      table: @table,
+    )
+
     @storage.keyspace!
     @storage.table!
   end
