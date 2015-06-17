@@ -18,6 +18,13 @@ describe Polipus::Storage::CassandraStore do
 
     @storage.keyspace!
     @storage.table!
+
+    @storage_without_code_and_body = Polipus::Storage::CassandraStore.new(
+      cluster: @cluster,
+      keyspace: @keyspace,
+      table: @table,
+      except: ['code', 'body']
+    )
   end
 
   after(:all) do
@@ -82,11 +89,16 @@ describe Polipus::Storage::CassandraStore do
   end
 
   it 'should honor the except parameters' do
-    p = page_factory 'http://www.user-doo.com',  code: 200, body: '<html></html>'
-    @storage.add p
-    p = @storage.get p
-    expect(p.body).not_to be_empty
-    @storage.remove p
+    pag = page_factory 'http://www.user-doo.com'
+    expect(pag.code).to eq(200)
+    expect(pag.body).to eq('<html></html>')
+
+    @storage_without_code_and_body.add(pag)
+    pag = @storage_without_code_and_body.get(pag)
+
+    expect(pag.body).to be_nil
+    expect(pag.code).to eq(0)
+    @storage_without_code_and_body.remove(pag)
   end
 
   it 'should return false if a doc not exists' do
