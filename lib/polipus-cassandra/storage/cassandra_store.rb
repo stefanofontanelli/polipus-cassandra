@@ -44,10 +44,26 @@ module Polipus
           uuid_ = uuid(page)
           obj = page.to_hash
           Array(@except).each { |e| obj.delete e.to_s }
-          json = MultiJson.encode(obj)
-          statement = "INSERT INTO #{table_} (uuid, page) VALUES (?, ?);"
-          session.execute(session.prepare(statement),
-                          arguments: [uuid_, Zlib::Deflate.deflate(json)])
+
+          begin
+            BINARY_FIELDS.each do |field|
+              obj[field] = obj[field].to_s.encode('UTF-8', {:invalid => :replace, :undef => :replace, :replace => '?'}) if can_be_converted?(obj[field])
+              # ec = Encoding::Converter.new("ASCII-8BIT", "UTF-8")
+              # obj[field] = ec.convert(obj[field]) if can_be_converted?(obj[field])
+              # obj[field] = obj[field].force_encoding('ASCII-8BIT').force_encoding('UTF-8') if can_be_converted?(obj[field])
+            end
+
+            json = MultiJson.encode(obj)
+            statement = "INSERT INTO #{table_} (uuid, page) VALUES (?, ?);"
+            session.execute(
+              session.prepare(statement),
+              arguments: [uuid_, Zlib::Deflate.deflate(json)])
+
+          rescue Encoding::UndefinedConversionError
+            puts $!.error_char.dump
+            puts $!.error_char.encoding
+          end
+
           uuid_
         end
       end
@@ -126,6 +142,12 @@ module Polipus
         page = Page.from_hash(hash)
         page.fetched_at = 0 if page.fetched_at.nil?
         page
+      end
+
+      private
+
+      def can_be_converted?(field)
+        !field.nil? && field.is_a?(String) && !field.empty?
       end
     end
   end
