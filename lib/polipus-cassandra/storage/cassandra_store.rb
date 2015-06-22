@@ -8,7 +8,30 @@ require 'zlib'
 module Polipus
   module Storage
     class CassandraStore < Base
-      # some doc here
+      # CassandraStore wants to persists documents (please ignore the jargon
+      # inherited from MongoDB) like the following JSON-ish entry:
+      #
+      # > db['linkedin-refresh'].find({})
+      #
+      #   {
+      #     "_id" : ObjectId("...."),
+      #     "url" : "https://www.awesome.org/meh",
+      #     "code" : 200,
+      #     "depth" : 0,
+      #     "referer" : "",
+      #     "redirect_to" : "",
+      #     "response_time" : 1313,
+      #     "fetched" : true,
+      #     "user_data" :
+      #       {
+      #         "imported" : false,
+      #         "is_developer" : false,
+      #         "last_modified" : null
+      #       },
+      #      "fetched_at" : 1434977757,
+      #      "error" : "",
+      #      "uuid" : "4ddce293532ea2454356a4210e61c363"
+      #  }
 
       attr_accessor :cluster, :keyspace, :table
 
