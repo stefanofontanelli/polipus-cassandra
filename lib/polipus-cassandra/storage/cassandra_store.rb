@@ -70,7 +70,10 @@ module Polipus
 
           begin
             BINARY_FIELDS.each do |field|
-              obj[field] = obj[field].to_s.encode('UTF-8', {:invalid => :replace, :undef => :replace, :replace => '?'}) if can_be_converted?(obj[field])
+              obj[field] = obj[field].to_s.encode('UTF-8', {
+                invalid: :replace,
+                undef: :replace,
+                replace: '?' }) if can_be_converted?(obj[field])
               # ec = Encoding::Converter.new("ASCII-8BIT", "UTF-8")
               # obj[field] = ec.convert(obj[field]) if can_be_converted?(obj[field])
               # obj[field] = obj[field].force_encoding('ASCII-8BIT').force_encoding('UTF-8') if can_be_converted?(obj[field])
