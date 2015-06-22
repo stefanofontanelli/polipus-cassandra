@@ -80,10 +80,53 @@ module Polipus
             end
 
             json = MultiJson.encode(obj)
-            statement = "INSERT INTO #{table_} (uuid, page) VALUES (?, ?);"
+
+            url = obj.fetch('url', nil)
+            code = obj.fetch('code', nil)
+            depth = obj.fetch('depth', nil)
+            referer = obj.fetch('referer', nil)
+            redirectto = obj.fetch('redirect_to', nil)
+            response_time = obj.fetch('response_time', nil)
+            fetched = obj.fetch('fetched', nil)
+            error = obj.fetch('error', nil)
+            page = Zlib::Deflate.deflate(json)
+
+            if obj.has_key?('user_data') && !obj['user_data'].empty?
+              user_data = MultiJson.encode(obj['user_data'])
+            else
+              user_data = nil
+            end
+
+            value = obj.fetch('fetched_at', nil)
+            fetched_at = case value
+            when Fixnum
+              Time.at(value)
+            when String
+              Time.parse(value)
+            else
+              nil
+            end
+
+            column_names = %w[ uuid url code depth referer redirect_to response_time fetched user_data fetched_at error page ]
+            values_placeholders = column_names.map{|_| '?'}.join(',')
+            statement = "INSERT INTO #{table_} ( #{column_names.join(',')} ) VALUES (#{values_placeholders});"
+
             session.execute(
               session.prepare(statement),
-              arguments: [uuid_, Zlib::Deflate.deflate(json)])
+              arguments: [
+                uuid_,
+                url,
+                code,
+                depth,
+                referer,
+                redirectto,
+                response_time,
+                fetched,
+                user_data,
+                fetched_at,
+                error,
+                page
+              ])
 
           rescue Encoding::UndefinedConversionError
             puts $!.error_char.dump
@@ -156,7 +199,21 @@ module Polipus
 
       def table!(properties = nil)
         table_ = [keyspace, table].compact.join '.'
-        def_ = "CREATE TABLE IF NOT EXISTS #{table_} (uuid TEXT PRIMARY KEY, page BLOB)"
+        def_ = "CREATE TABLE IF NOT EXISTS #{table_}
+          (
+            uuid TEXT PRIMARY KEY,
+            url TEXT,
+            code INT,
+            depth INT,
+            referer TEXT,
+            redirect_to TEXT,
+            response_time BIGINT,
+            fetched boolean,
+            user_data TEXT,
+            fetched_at TIMESTAMP,
+            error TEXT,
+            page BLOB
+          )"
         props = properties.to_a.join(' AND ')
         statement = props.empty? ? "#{def_};" : "#{def_} WITH #{props};"
         session.execute statement
