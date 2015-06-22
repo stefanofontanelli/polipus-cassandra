@@ -40,6 +40,32 @@ describe Polipus::Storage::CassandraStore do
     expect(p.body).to eq('<html></html>')
   end
 
+  it 'should store all the relevant data from the page' do
+    url = "http://www.duckduckgo.com"
+    referer = "http://www.actually.nowhere.com"
+    redirectto = "#{url}/your_super_awesome_results?page=42"
+    now = Time.now.to_i
+    p = page_factory(
+      url,
+      {
+        referer: referer,
+        redirect_to: redirectto,
+        fetched_at: now
+      })
+    uuid = @storage.add p
+    expect(uuid).to eq('3cd657f53c74f22c1a21b420ce3863fd')
+    p = @storage.get p
+
+    expect(p.url.to_s).to eq(url)
+    expect(p.referer.to_s).to eq(referer)
+    expect(p.redirect_to.to_s).to eq(redirectto)
+    expect(p.fetched_at).to eq(now)
+    expect(p.body).to eq('<html></html>')
+
+    # for the sake of the other tests...
+    expect(@storage.remove(p)).to be_truthy
+  end
+
   it 'should update a page' do
     p = page_factory 'http://www.google.com', code: 301
     @storage.add p
