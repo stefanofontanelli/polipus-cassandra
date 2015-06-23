@@ -76,7 +76,6 @@ module Polipus
 
           table_ = [keyspace, table].compact.join('.')
           uuid_ = uuid(data['url'])
-          require 'pry' ; binding.pry
 
           begin
             url = obj.fetch('url', nil)
