@@ -8,6 +8,7 @@ require 'zlib'
 module Polipus
   module Storage
     class CassandraStore < Base
+
       # CassandraStore wants to persists documents (please ignore the jargon
       # inherited from MongoDB) like the following JSON-ish entry:
       #
@@ -66,7 +67,7 @@ module Polipus
           table_ = [keyspace, table].compact.join '.'
           uuid_ = uuid(page)
           obj = page.to_hash
-          Array(@except).each { |e| obj.delete e.to_s }
+          Array(@except).each { |e| obj.delete(e.to_s) }
 
           begin
             BINARY_FIELDS.each do |field|
@@ -208,7 +209,7 @@ module Polipus
             referer TEXT,
             redirect_to TEXT,
             response_time BIGINT,
-            fetched boolean,
+            fetched BOOLEAN,
             user_data TEXT,
             fetched_at TIMESTAMP,
             error TEXT,
