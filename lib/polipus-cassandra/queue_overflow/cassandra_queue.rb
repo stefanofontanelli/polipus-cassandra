@@ -118,11 +118,11 @@ module Polipus
         fail "Not implemented yet!"
       end
 
-      alias_method :size,  :length
-      alias_method :dec,   :pop
+      alias_method :size, :length
+      alias_method :dec, :pop
       alias_method :shift, :pop
-      alias_method :enc,   :push
-      alias_method :<<,    :push
+      alias_method :enc, :push
+      alias_method :<<, :push
 
       # Quoting:
       # > I think UUID is wrong here, the right primary key type is timeuuid.
