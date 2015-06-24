@@ -39,7 +39,6 @@ module Polipus
         @table = options[:table]
         @semaphore = Mutex.new
         @options = options
-        @include_query_string_in_uuid = @options[:include_query_string_in_uuid] ||= false
         # @options[:ensure_uniq] ||= false
         # @options[:ensure_uniq] && ensure_index
       end
