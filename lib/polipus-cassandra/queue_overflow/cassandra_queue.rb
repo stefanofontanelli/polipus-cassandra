@@ -39,6 +39,7 @@ module Polipus
         @table = options[:table]
         @semaphore = Mutex.new
         @options = options
+        @logger = @options[:logger] ||= Logger.new(STDOUT).tap { |l| l.level = Logger::INFO }
         # @options[:ensure_uniq] ||= false
         # @options[:ensure_uniq] && ensure_index
       end
