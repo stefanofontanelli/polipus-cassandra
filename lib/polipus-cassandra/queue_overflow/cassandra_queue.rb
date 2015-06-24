@@ -115,12 +115,15 @@ module Polipus
       end
 
       def pop(_ = false)
+        # A recap: pop should remove oldest N messages and return to the caller.
         # This method will do the following:
         # - find
         # - sort
         # - delete
         # - return
         fail "Not implemented yet!"
+        attempts_wrapper do
+        end
       end
 
       alias_method :size, :length
