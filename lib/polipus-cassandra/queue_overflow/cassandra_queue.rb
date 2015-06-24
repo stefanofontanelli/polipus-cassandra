@@ -206,7 +206,7 @@ module Polipus
             depth INT,
             fetched BOOLEAN
           )"
-        props = properties.to_a.join(' AND ')
+        props = Array(properties).join(' AND ')
         statement = props.empty? ? "#{def_};" : "#{def_} WITH #{props};"
         attempts_wrapper { session.execute statement }
       end
