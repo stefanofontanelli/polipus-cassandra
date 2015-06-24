@@ -75,7 +75,7 @@ module Polipus
           raise 'Data received does not have URL' unless obj.has_key?('url')
 
           table_ = [keyspace, table].compact.join('.')
-          uuid_ = uuid(data['url'])
+          uuid_ = time_uuid
 
           begin
             url = obj.fetch('url', nil)
@@ -124,12 +124,22 @@ module Polipus
       alias_method :enc,   :push
       alias_method :<<,    :push
 
-      def uuid(data)
-        if @include_query_string_in_uuid.nil?
-          @include_query_string_in_uuid = true
-        end
-        url_to_hash = @include_query_string_in_uuid ? data['url'].to_s : data['url'].to_s.gsub(/\?.*$/, '')
-        Digest::MD5.hexdigest url_to_hash.gsub('https://', 'http://')
+      # Quoting:
+      # > I think UUID is wrong here, the right primary key type is timeuuid.
+      # > http://stackoverflow.com/questions/17945677/cassandra-uuid-vs-timeuuid-benefits-and-disadvantages
+      #
+      # > We want iterate from oldest message to the newest one because the
+      # > overflow queue must be fair: oldest messages must be popped before
+      # > newest, if I choose a MD5 generated UUID the order is (more or less)
+      # > unknown, data will be sorted by token(uuid) and I am pretty sure the
+      # > queue won't be fair.
+      #
+      # Thus I'll use the TimeUUID generator provided by Datastax
+      # http://docs.datastax.com/en/drivers/ruby/2.1/uuid/generator/
+      # Generator#now returns a UUID generated from the current time.
+      def time_uuid
+        generator = Cassandra::Uuid::Generator.new
+        return String(generator.now)
       end
 
       def keyspace!(replication = nil, durable_writes = true)
