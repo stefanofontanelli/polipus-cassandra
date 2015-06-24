@@ -53,24 +53,27 @@ module Polipus
       # Return true if the table has no rows.
       # This is achieved with a 'LIMIT 1' query.
       def empty?
-        @semaphore.synchronize do
-          table_ = [keyspace, table].compact.join '.'
-          statement = "SELECT uuid FROM #{table_} LIMIT 1;"
-          results = session.execute(session.prepare(statement), arguments: [])
-          !results.first.nil?
+        attempts_wrapper do
+            table_ = [keyspace, table].compact.join '.'
+            statement = "SELECT uuid FROM #{table_} LIMIT 1;"
+            @semaphore.synchronize do
+              results = session.execute(session.prepare(statement), arguments: [])
+            end
+            results.first.nil?
         end
       end
 
       # Clear is a fancy name for a DROP TABLE IF EXISTS table_.
       def clear
-        table_ = [keyspace, table].compact.join '.'
-        statement = "DROP TABLE IF EXISTS #{table_};"
-        session.execute statement
+        attempts_wrapper do
+          table_ = [keyspace, table].compact.join '.'
+          statement = "DROP TABLE IF EXISTS #{table_};"
+          session.execute statement
+        end
       end
 
       def push(data)
-        @semaphore.synchronize do
-
+        attempts_wrapper do
           obj = MultiJson.decode(data)
           raise 'Data received does not have URL' unless obj.has_key?('url')
 
@@ -91,15 +94,17 @@ module Polipus
             values_placeholders = column_names.map{|_| '?'}.join(',')
             statement = "INSERT INTO #{table_} ( #{column_names.join(',')} ) VALUES (#{values_placeholders});"
 
-            session.execute(
-              session.prepare(statement),
-              arguments: [
-                uuid_,
-                url,
-                depth,
-                fetched,
-                payload
-              ])
+            @semaphore.synchronize do
+              session.execute(
+                session.prepare(statement),
+                arguments: [
+                  uuid_,
+                  url,
+                  depth,
+                  fetched,
+                  payload
+                ])
+            end
           rescue Encoding::UndefinedConversionError
             puts $!.error_char.dump
             puts $!.error_char.encoding
@@ -142,14 +147,18 @@ module Polipus
         return String(generator.now)
       end
 
+
       def keyspace!(replication = nil, durable_writes = true)
         replication ||= "{'class': 'SimpleStrategy', 'replication_factor': '1'}"
         statement = "CREATE KEYSPACE IF NOT EXISTS #{keyspace} WITH replication = #{replication} AND durable_writes = #{durable_writes};"
-        cluster.connect.execute statement
+        attempts_wrapper { cluster.connect.execute statement }
       end
 
       def session
-        @session = @cluster.connect(keyspace)
+        if @session.nil?
+          attempts_wrapper { @session = @cluster.connect(keyspace) }
+        end
+        @session
       end
 
       # Taking a look in the Cassandra KEYSPACE you will found:
@@ -199,7 +208,9 @@ module Polipus
           )"
         props = properties.to_a.join(' AND ')
         statement = props.empty? ? "#{def_};" : "#{def_} WITH #{props};"
-        session.execute statement
+        attempts_wrapper { session.execute statement }
+      end
+
       private
 
       RESCUED_CASSANDRA_EXCEPTIONS = [
