@@ -37,9 +37,10 @@ module Polipus
       attr_accessor :cluster, :keyspace, :table
 
       def initialize(options = {})
+        raise ArgumentError unless options_are_valid?(options)
         @cluster = options[:cluster]
-        @keyspace = options[:keyspace]
-        @table = options[:table]
+        @keyspace = options[:keyspace].gsub("-", "_")
+        @table = options[:table].gsub("-", "_")
         @semaphore = Mutex.new
         @options = options
         @logger = @options[:logger] ||= Logger.new(STDOUT).tap { |l| l.level = Logger::INFO }
@@ -219,6 +220,8 @@ module Polipus
 
       private
 
+      def options_are_valid?(options)
+        options.has_key?(:cluster) && options.has_key?(:keyspace) && options.has_key?(:table)
       end
     end
   end
