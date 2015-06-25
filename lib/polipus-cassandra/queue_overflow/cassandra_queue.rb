@@ -79,33 +79,29 @@ module Polipus
       def push(data)
         attempts_wrapper do
           obj = MultiJson.decode(data)
-          raise 'Data received does not have URL' unless obj.has_key?('url')
 
           table_ = [keyspace, table].compact.join('.')
-          uuid_ = time_uuid
+          queue_name = @keyspace
+          created_at = Time.now.utc.to_f
 
           begin
-            url = obj.fetch('url', nil)
-            depth = obj.fetch('depth', nil)
-            fetched = obj.fetch('fetched', nil)
-            if obj.has_key?('payload') && !obj['payload'].empty?
-              payload = MultiJson.encode(obj['payload'])
-            else
-              payload = nil
-            end
-
-            column_names = %w[ uuid url depth fetched payload ]
-            values_placeholders = column_names.map{|_| '?'}.join(',')
-            statement = "INSERT INTO #{table_} ( #{column_names.join(',')} ) VALUES (#{values_placeholders});"
-
             @semaphore.synchronize do
+
+              if obj.has_key?('payload') && !obj['payload'].empty?
+                payload = MultiJson.encode(obj['payload'])
+              else
+                payload = nil
+              end
+
+              column_names = %w[ queue_name created_at payload ]
+              values_placeholders = column_names.map{|_| '?'}.join(',')
+              statement = "INSERT INTO #{table_} ( #{column_names.join(',')} ) VALUES (#{values_placeholders});"
+
               session.execute(
                 session.prepare(statement),
                 arguments: [
-                  uuid_,
-                  url,
-                  depth,
-                  fetched,
+                  queue_name,
+                  created_at,
                   payload
                 ])
             end
@@ -114,7 +110,7 @@ module Polipus
             puts $!.error_char.encoding
           end
 
-          uuid_
+          [queue_name, created_at].to_s
         end
       end
 
@@ -151,17 +147,17 @@ module Polipus
 
       # Taking a look in the Cassandra KEYSPACE you will found:
       #
-      # cqlsh> DESCRIBE KEYSPACE polipus_queue_overflow_linkedin
+      # cqlsh> DESCRIBE KEYSPACE polipus_queue_overflow_linkedin ;
       #
       # CREATE KEYSPACE polipus_queue_overflow_linkedin WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'}  AND durable_writes = true;
       #
       # CREATE TABLE polipus_queue_overflow_linkedin.linkedin_overflow (
-      #     uuid text PRIMARY KEY,
-      #     depth int,
-      #     fetched boolean,
+      #     queue_name text,
+      #     created_at double,
       #     payload text,
-      #     url text
-      # ) WITH bloom_filter_fp_chance = 0.01
+      #     PRIMARY KEY (queue_name, created_at)
+      # ) WITH CLUSTERING ORDER BY (created_at ASC)
+      #     AND bloom_filter_fp_chance = 0.01
       #     AND caching = '{"keys":"ALL", "rows_per_partition":"NONE"}'
       #     AND comment = ''
       #     AND compaction = {'min_threshold': '4', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy', 'max_threshold': '32'}
@@ -175,24 +171,25 @@ module Polipus
       #     AND read_repair_chance = 0.0
       #     AND speculative_retry = '99.0PERCENTILE';
       #
+      # This means that:
+      # - queue_name is partition key;
+      # - created_at is clustering key;
+      #
       # With sample data:
       #
       # cqlsh> select * from polipus_queue_overflow_linkedin.linkedin_overflow ;
       #
-      #  uuid                             | depth | fetched | payload | url
-      # ----------------------------------+-------+---------+---------+-------------------------------------------------------------------------
-      #  572d4e421e5e6b9bc11d815e8a027112 |     3 |   False |    null | https://www.linkedin.com/pub/jennifer-peterson/13/614/69a?trk=pub-pbmap
-      #
       # (1 rows)
+      #
+      # Note:
       def table!(properties = nil)
         table_ = [keyspace, table].compact.join '.'
         def_ = "CREATE TABLE IF NOT EXISTS #{table_}
           (
-            uuid TEXT PRIMARY KEY,
-            url TEXT,
+            queue_name TEXT,
+            created_at DOUBLE,
             payload TEXT,
-            depth INT,
-            fetched BOOLEAN
+            PRIMARY KEY (queue_name, created_at)
           )"
         props = Array(properties).join(' AND ')
         statement = props.empty? ? "#{def_};" : "#{def_} WITH #{props};"
