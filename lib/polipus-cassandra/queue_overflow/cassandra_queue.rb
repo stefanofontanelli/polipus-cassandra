@@ -6,6 +6,9 @@ module Polipus
   module QueueOverflow
     class CassandraQueue
 
+      # Contains the `attempts_wrapper` implementation.
+      include Enhancements
+
       # CassandraQueue wants to persists documents (please, still ignore the
       # jargon inherited from Mongo) like the following JSON-ish entry.
       #
@@ -54,12 +57,12 @@ module Polipus
       # This is achieved with a 'LIMIT 1' query.
       def empty?
         attempts_wrapper do
-            table_ = [keyspace, table].compact.join '.'
-            statement = "SELECT uuid FROM #{table_} LIMIT 1;"
-            @semaphore.synchronize do
-              results = session.execute(session.prepare(statement), arguments: [])
-            end
-            results.first.nil?
+          table_ = [keyspace, table].compact.join '.'
+          statement = "SELECT queue_name FROM #{table_} LIMIT 1;"
+          @semaphore.synchronize do
+            results = session.execute(session.prepare(statement), arguments: [])
+          end
+          results.first.nil?
         end
       end
 
@@ -216,46 +219,6 @@ module Polipus
 
       private
 
-      RESCUED_CASSANDRA_EXCEPTIONS = [
-        ::Cassandra::Errors::ExecutionError,
-        ::Cassandra::Errors::IOError,
-        ::Cassandra::Errors::InternalError,
-        ::Cassandra::Errors::NoHostsAvailable,
-        ::Cassandra::Errors::ServerError,
-        ::Cassandra::Errors::TimeoutError
-      ]
-      # Trying to rescue from a Cassandra::Error
-      #
-      # The relevant documentation is here (version 2.1.3):
-      # https://datastax.github.io/ruby-driver/api/error/
-      #
-      # Saving from:
-      #
-      # - ::Cassandra::Errors::ExecutionError
-      # - ::Cassandra::Errors::IOError
-      # - ::Cassandra::Errors::InternalError
-      # - ::Cassandra::Errors::NoHostsAvailable
-      # - ::Cassandra::Errors::ServerError
-      # - ::Cassandra::Errors::TimeoutError
-      #
-      # Ignoring:
-      # - Errors::ClientError
-      # - Errors::DecodingError
-      # - Errors::EncodingError
-      # - Errors::ValidationError
-      #
-      # A possible and maybe-good refactoring could be refine for the
-      # network related issues.
-      def attempts_wrapper(attempts = 2, &block)
-        (1..attempts).each do |i|
-          begin
-            return block.call() if block_given?
-          rescue *RESCUED_CASSANDRA_EXCEPTIONS => e
-            logger.error { "(#{i}/#{attempts} attempts) Bad fail! Retry in #{i*2} seconds to recover  #{e.class.name}: #{e.message}" }
-            sleep(i*2)
-          end
-        end
-        nil
       end
     end
   end
