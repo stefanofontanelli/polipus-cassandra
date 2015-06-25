@@ -136,25 +136,6 @@ module Polipus
       alias_method :enc, :push
       alias_method :<<, :push
 
-      # Quoting:
-      # > I think UUID is wrong here, the right primary key type is timeuuid.
-      # > http://stackoverflow.com/questions/17945677/cassandra-uuid-vs-timeuuid-benefits-and-disadvantages
-      #
-      # > We want iterate from oldest message to the newest one because the
-      # > overflow queue must be fair: oldest messages must be popped before
-      # > newest, if I choose a MD5 generated UUID the order is (more or less)
-      # > unknown, data will be sorted by token(uuid) and I am pretty sure the
-      # > queue won't be fair.
-      #
-      # Thus I'll use the TimeUUID generator provided by Datastax
-      # http://docs.datastax.com/en/drivers/ruby/2.1/uuid/generator/
-      # Generator#now returns a UUID generated from the current time.
-      def time_uuid
-        generator = Cassandra::Uuid::Generator.new
-        return String(generator.now)
-      end
-
-
       def keyspace!(replication = nil, durable_writes = true)
         replication ||= "{'class': 'SimpleStrategy', 'replication_factor': '1'}"
         statement = "CREATE KEYSPACE IF NOT EXISTS #{keyspace} WITH replication = #{replication} AND durable_writes = #{durable_writes};"
