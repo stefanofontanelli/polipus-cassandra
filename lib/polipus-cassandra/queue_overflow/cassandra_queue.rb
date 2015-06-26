@@ -113,15 +113,60 @@ module Polipus
         end
       end
 
-      def pop(_ = false)
+      def pop(n = nil)
         # A recap: pop should remove oldest N messages and return to the caller.
-        # This method will do the following:
-        # - find
-        # - sort
-        # - delete
-        # - return
-        fail "Not implemented yet!"
+        #
+        # Let's see how this queue is implemented.
+        # In redis, messages are LPUSH-ed:
+        #
+        #  4 - 3 - 2 - 1 --> REDIS
+        #      4 - 3 - 2 --> REDIS
+        #          4 - 3 --> REDIS
+        #              4 --> REDIS
+        #
+        # Then, in the fast_dequeue, are RPOP-ped:
+        #
+        # REDIS --> 1
+        # REDIS --> 2 - 1
+        # REDIS --> 3 - 2 - 1
+        # REDIS --> 4 - 3 - 2 - 1
+        #
+        # Then, are received in this order:
+        # [1] -> TimeUUID(1) = ...
+        # [2] -> TimeUUID(1) = ...
+        # [3] -> TimeUUID(1) = ...
+        # [4] -> TimeUUID(1) = ...
+        #
+        # As you can see below, are ORDER BY (created_at ASC)... that means
+        # "olders first". When using 'LIMIT n' in a query, you get the 'n'
+        # olders entries.
+        #
+        # cqlsh> SELECT  * FROM  polipus_queue_overflow_linkedin.linkedin_overflow ;
+        #
+        #  queue_name                      | created_at                           | payload
+        # ---------------------------------+--------------------------------------+---------
+        #  polipus_queue_overflow_linkedin | 4632d49c-1c04-11e5-844b-0b314c777502 |     "1"
+        #  polipus_queue_overflow_linkedin | 46339f8a-1c04-11e5-844b-0b314c777502 |     "2"
+        #  polipus_queue_overflow_linkedin | 46349962-1c04-11e5-844b-0b314c777502 |     "3"
+        #  polipus_queue_overflow_linkedin | 46351860-1c04-11e5-844b-0b314c777502 |     "4"
+        #
+        # (4 rows)
+        # cqlsh> SELECT  * FROM  polipus_queue_overflow_linkedin.linkedin_overflow LIMIT 1;
+        #
+        #  queue_name                      | created_at                           | payload
+        # ---------------------------------+--------------------------------------+---------
+        #  polipus_queue_overflow_linkedin | 4632d49c-1c04-11e5-844b-0b314c777502 |     "1"
+        #
+        # (1 rows)
+        #
         attempts_wrapper do
+          table_ = [keyspace, table].compact.join '.'
+          results = get(n)
+          results.each do |entry|
+            statement = "DELETE FROM #{table_} WHERE queue_name = '#{entry['queue_name']}' AND created_at = #{entry['created_at']} ;"
+            session.execute(statement)
+          end
+          return results.to_enum
         end
       end
 
