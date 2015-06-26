@@ -152,7 +152,7 @@ module Polipus
       #
       # CREATE TABLE polipus_queue_overflow_linkedin.linkedin_overflow (
       #     queue_name text,
-      #     created_at double,
+      #     created_at timeuuid,
       #     payload text,
       #     PRIMARY KEY (queue_name, created_at)
       # ) WITH CLUSTERING ORDER BY (created_at ASC)
@@ -176,17 +176,21 @@ module Polipus
       #
       # With sample data:
       #
-      # cqlsh> select * from polipus_queue_overflow_linkedin.linkedin_overflow ;
+      # cqlsh> SELECT  * FROM  polipus_queue_overflow_linkedin.linkedin_overflow LIMIT 1 ;
+      #
+      #  queue_name                      | created_at                           | payload
+      # ---------------------------------+--------------------------------------+---------
+      #  polipus_queue_overflow_linkedin | 67513750-1bef-11e5-ba03-45190569f1f0 |    null
       #
       # (1 rows)
+      # cqlsh>
       #
-      # Note:
       def table!(properties = nil)
         table_ = [keyspace, table].compact.join '.'
         def_ = "CREATE TABLE IF NOT EXISTS #{table_}
           (
             queue_name TEXT,
-            created_at DOUBLE,
+            created_at TIMEUUID,
             payload TEXT,
             PRIMARY KEY (queue_name, created_at)
           )"
