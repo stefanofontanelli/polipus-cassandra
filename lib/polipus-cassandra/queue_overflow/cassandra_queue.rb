@@ -66,8 +66,8 @@ module Polipus
       def clear
         attempts_wrapper do
           table_ = [keyspace, table].compact.join '.'
-          statement = "DROP TABLE IF EXISTS #{table_};"
-          session.execute statement
+          statement = "DROP TABLE IF EXISTS #{table_} ;"
+          session.execute(statement)
         end
       end
 
@@ -130,7 +130,7 @@ module Polipus
       def keyspace!(replication = nil, durable_writes = true)
         replication ||= "{'class': 'SimpleStrategy', 'replication_factor': '1'}"
         statement = "CREATE KEYSPACE IF NOT EXISTS #{keyspace} WITH replication = #{replication} AND durable_writes = #{durable_writes};"
-        attempts_wrapper { cluster.connect.execute statement }
+        attempts_wrapper { cluster.connect.execute(statement) }
       end
 
       def session
@@ -188,7 +188,7 @@ module Polipus
           )"
         props = Array(properties).join(' AND ')
         statement = props.empty? ? "#{def_};" : "#{def_} WITH #{props};"
-        attempts_wrapper { session.execute statement }
+        attempts_wrapper { session.execute(statement) }
       end
 
       private
