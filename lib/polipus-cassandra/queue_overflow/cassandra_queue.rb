@@ -207,6 +207,17 @@ module Polipus
       def limit_is_valid?(limit)
         !limit.nil? && limit.respond_to?(:to_i) && limit.to_i > 0
       end
+
+      def get(limit = 1)
+        raise ArgumentError("Invalid limit value: must be an INTEGER greater than 1.") unless limit_is_valid?(limit)
+        attempts_wrapper do
+          table_ = [keyspace, table].compact.join '.'
+          statement = "SELECT queue_name, created_at, payload FROM #{table_} LIMIT #{limit.to_i} ;"
+          @semaphore.synchronize do
+            return session.execute(session.prepare(statement), arguments: [])
+          end
+        end
+      end
     end
   end
 end
