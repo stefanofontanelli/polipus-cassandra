@@ -24,6 +24,7 @@ module Polipus
       #
       # Taking some data from our backend.production.mongodb.gild.com/polipus
       # I found:
+      #
       # db.polipus_q_overflow_linkedin_refresh_queue_overflow.find().limit(1)
       # {
       #   "_id" : ObjectId("544072d0e3d55b0db700021c"),
@@ -36,6 +37,9 @@ module Polipus
 
       attr_accessor :cluster, :keyspace, :table
 
+      # There is a validation enforced to `:keyspace` and `:table` because
+      # Cassandra is not happy when a keyspace or a table name contains an
+      # hyphen.
       def initialize(options = {})
         raise ArgumentError unless options_are_valid?(options)
         @cluster = options[:cluster]
@@ -44,8 +48,6 @@ module Polipus
         @semaphore = Mutex.new
         @options = options
         @logger = @options[:logger] ||= Logger.new(STDOUT).tap { |l| l.level = Logger::INFO }
-        # @options[:ensure_uniq] ||= false
-        # @options[:ensure_uniq] && ensure_index
       end
 
       # Length aka Size aka Count is not supported in Cassandra... this is not
@@ -55,7 +57,7 @@ module Polipus
       end
 
       # Return true if the table has no rows.
-      # This is achieved with a 'LIMIT 1' query.
+      # This is achieved with a 'SELECT WITH LIMIT 1' query.
       def empty?
         attempts_wrapper do
           table_ = [keyspace, table].compact.join '.'
@@ -67,7 +69,7 @@ module Polipus
         end
       end
 
-      # Clear is a fancy name for a DROP TABLE IF EXISTS table_.
+      # Clear is a fancy name for a DROP TABLE IF EXISTS <table_>.
       def clear
         attempts_wrapper do
           table_ = [keyspace, table].compact.join '.'
