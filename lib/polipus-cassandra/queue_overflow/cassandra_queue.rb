@@ -59,14 +59,7 @@ module Polipus
       # Return true if the table has no rows.
       # This is achieved with a 'SELECT WITH LIMIT 1' query.
       def empty?
-        attempts_wrapper do
-          table_ = [keyspace, table].compact.join '.'
-          statement = "SELECT queue_name FROM #{table_} LIMIT 1;"
-          @semaphore.synchronize do
-            results = session.execute(session.prepare(statement), arguments: [])
-          end
-          results.first.nil?
-        end
+        return get.first.nil?
       end
 
       # Clear is a fancy name for a DROP TABLE IF EXISTS <table_>.
