@@ -47,6 +47,7 @@ module Polipus
         @table = options[:table].gsub("-", "_")
         @semaphore = Mutex.new
         @options = options
+        @timeuuid_generator = Cassandra::Uuid::Generator.new
         @logger = @options[:logger] ||= Logger.new(STDOUT).tap { |l| l.level = Logger::INFO }
       end
 
@@ -71,13 +72,15 @@ module Polipus
         end
       end
 
+      # push is your the "write into Cassandra" method.
       def push(data)
+        return nil if data.nil?
         attempts_wrapper do
           obj = MultiJson.decode(data)
 
           table_ = [keyspace, table].compact.join('.')
           queue_name = @keyspace
-          created_at = Time.now.utc.to_f
+          created_at = @timeuuid_generator.now
 
           begin
             @semaphore.synchronize do
@@ -105,6 +108,7 @@ module Polipus
             puts $!.error_char.encoding
           end
 
+          @logger.debug { "Writing this entry [#{[queue_name, created_at].to_s}]" }
           [queue_name, created_at].to_s
         end
       end
