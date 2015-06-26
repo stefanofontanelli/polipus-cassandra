@@ -52,6 +52,8 @@ module Polipus
             sleep(sleep_for)
           end
         end
+        ## FIXME!!
+        raise 
         nil
       end
 
