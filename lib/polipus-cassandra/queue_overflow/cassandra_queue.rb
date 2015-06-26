@@ -203,6 +203,10 @@ module Polipus
       def options_are_valid?(options)
         options.has_key?(:cluster) && options.has_key?(:keyspace) && options.has_key?(:table)
       end
+
+      def limit_is_valid?(limit)
+        !limit.nil? && limit.respond_to?(:to_i) && limit.to_i > 0
+      end
     end
   end
 end
