@@ -6,9 +6,6 @@ module Polipus
   module QueueOverflow
     class CassandraQueue
 
-      # Contains the `attempts_wrapper` implementation.
-      include Enhancements
-
       # CassandraQueue wants to persists documents (please, still ignore the
       # jargon inherited from Mongo) like the following JSON-ish entry.
       #
@@ -65,52 +62,48 @@ module Polipus
 
       # Clear is a fancy name for a DROP TABLE IF EXISTS <table_>.
       def clear
-        attempts_wrapper do
-          table_ = [keyspace, table].compact.join '.'
-          statement = "DROP TABLE IF EXISTS #{table_} ;"
-          session.execute(statement)
-        end
+        table_ = [keyspace, table].compact.join '.'
+        statement = "DROP TABLE IF EXISTS #{table_} ;"
+        session.execute(statement)
       end
 
       # push is your the "write into Cassandra" method.
       def push(data)
         return nil if data.nil?
-        attempts_wrapper do
-          obj = MultiJson.decode(data)
+        obj = MultiJson.decode(data)
 
-          table_ = [keyspace, table].compact.join('.')
-          queue_name = @keyspace
-          created_at = @timeuuid_generator.now
+        table_ = [keyspace, table].compact.join('.')
+        queue_name = @keyspace
+        created_at = @timeuuid_generator.now
 
-          begin
-            @semaphore.synchronize do
+        begin
+          @semaphore.synchronize do
 
-              if obj.has_key?('payload') && !obj['payload'].empty?
-                payload = MultiJson.encode(obj['payload'])
-              else
-                payload = nil
-              end
-
-              column_names = %w[ queue_name created_at payload ]
-              values_placeholders = column_names.map{|_| '?'}.join(',')
-              statement = "INSERT INTO #{table_} ( #{column_names.join(',')} ) VALUES (#{values_placeholders});"
-
-              session.execute(
-                session.prepare(statement),
-                arguments: [
-                  queue_name,
-                  created_at,
-                  payload
-                ])
+            if obj.has_key?('payload') && !obj['payload'].empty?
+              payload = MultiJson.encode(obj['payload'])
+            else
+              payload = nil
             end
-          rescue Encoding::UndefinedConversionError
-            puts $!.error_char.dump
-            puts $!.error_char.encoding
-          end
 
-          @logger.debug { "Writing this entry [#{[queue_name, created_at].to_s}]" }
-          [queue_name, created_at].to_s
+            column_names = %w[ queue_name created_at payload ]
+            values_placeholders = column_names.map{|_| '?'}.join(',')
+            statement = "INSERT INTO #{table_} ( #{column_names.join(',')} ) VALUES (#{values_placeholders});"
+
+            session.execute(
+              session.prepare(statement),
+              arguments: [
+                queue_name,
+                created_at,
+                payload
+              ])
+          end
+        rescue Encoding::UndefinedConversionError
+          puts $!.error_char.dump
+          puts $!.error_char.encoding
         end
+
+        @logger.debug { "Writing this entry [#{[queue_name, created_at].to_s}]" }
+        [queue_name, created_at].to_s
       end
 
       def pop(n = nil)
@@ -159,15 +152,13 @@ module Polipus
         #
         # (1 rows)
         #
-        attempts_wrapper do
-          table_ = [keyspace, table].compact.join '.'
-          results = get(n)
-          results.each do |entry|
-            statement = "DELETE FROM #{table_} WHERE queue_name = '#{entry['queue_name']}' AND created_at = #{entry['created_at']} ;"
-            session.execute(statement)
-          end
-          return results.to_enum
+        table_ = [keyspace, table].compact.join '.'
+        results = get(n)
+        results.each do |entry|
+          statement = "DELETE FROM #{table_} WHERE queue_name = '#{entry['queue_name']}' AND created_at = #{entry['created_at']} ;"
+          session.execute(statement)
         end
+        return results.to_enum
       end
 
       alias_method :size, :length
@@ -179,14 +170,11 @@ module Polipus
       def keyspace!(replication = nil, durable_writes = true)
         replication ||= "{'class': 'SimpleStrategy', 'replication_factor': '1'}"
         statement = "CREATE KEYSPACE IF NOT EXISTS #{keyspace} WITH replication = #{replication} AND durable_writes = #{durable_writes};"
-        attempts_wrapper { cluster.connect.execute(statement) }
+        cluster.connect.execute(statement)
       end
 
       def session
-        if @session.nil?
-          attempts_wrapper { @session = @cluster.connect(keyspace) }
-        end
-        @session
+        @session ||= @cluster.connect(keyspace)
       end
 
       # Taking a look in the Cassandra KEYSPACE you will found:
@@ -241,7 +229,7 @@ module Polipus
           )"
         props = Array(properties).join(' AND ')
         statement = props.empty? ? "#{def_};" : "#{def_} WITH #{props};"
-        attempts_wrapper { session.execute(statement) }
+        session.execute(statement)
       end
 
       private
@@ -256,12 +244,10 @@ module Polipus
 
       def get(limit = 1)
         raise ArgumentError("Invalid limit value: must be an INTEGER greater than 1.") unless limit_is_valid?(limit)
-        attempts_wrapper do
-          table_ = [keyspace, table].compact.join '.'
-          statement = "SELECT queue_name, created_at, payload FROM #{table_} LIMIT #{limit.to_i} ;"
-          @semaphore.synchronize do
-            return session.execute(session.prepare(statement), arguments: [])
-          end
+        table_ = [keyspace, table].compact.join '.'
+        statement = "SELECT queue_name, created_at, payload FROM #{table_} LIMIT #{limit.to_i} ;"
+        @semaphore.synchronize do
+          return session.execute(session.prepare(statement), arguments: [])
         end
       end
     end
