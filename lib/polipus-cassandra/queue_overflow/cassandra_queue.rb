@@ -133,7 +133,13 @@ module Polipus
         [queue_name, created_at].to_s
       end
 
-      def pop(n = nil)
+      # Pop removes 'n' entries from the overflow table (treated as a queue)
+      # and returns a paged result.
+      # results.class #=> Cassandra::Results::Paged
+      #
+      # Polipus is expecting a String, that will be JSONparsed with the purpose
+      # to build a
+      def pop(n = 1)
         # A recap: pop should remove oldest N messages and return to the caller.
         #
         # Let's see how this queue is implemented.
