@@ -251,8 +251,8 @@ module Polipus
       # cqlsh> SELECT  * FROM  polipus_queue_overflow_linkedin.linkedin_overflow LIMIT 1 ;
       #
       #  queue_name                      | created_at                           | payload
-      # ---------------------------------+--------------------------------------+---------
-      #  polipus_queue_overflow_linkedin | 67513750-1bef-11e5-ba03-45190569f1f0 |    null
+      # ---------------------------------+--------------------------------------+---------------------------------------------------------------------------------+
+      #  polipus_queue_overflow_linkedin | de17ece6-1e5e-11e5-b997-47a87c40c422 | "{\"url\":\"http://www.linkedin.com/in/foobar\",\"depth\":0,\"fetched\":false}"
       #
       # (1 rows)
       # cqlsh>
