@@ -19,13 +19,40 @@ module Polipus
       # def push(_data)
       # def pop(_ = false)
       #
-      # Taking some data from our backend.production.mongodb.gild.com/polipus
+      # Taking some data from our backend.production.*****.com/polipus
       # I found:
       #
-      # db.polipus_q_overflow_linkedin_refresh_queue_overflow.find().limit(1)
+      # mongos> db.getCollectionNames()
+      # [
+      #         "data-com-companies",
+      #         "data_com_companies",
+      #         "googleplus",
+      #         "linkedin",
+      #         "linkedin-companies",
+      #         "linkedin_companies_parsed",
+      #         "linkedin_jobs",
+      #         "linkedin_jobs_parsed",
+      #         "linkedin_pages_errors",
+      #         "polipus_q_overflow_data-com-companies_queue_overflow",
+      #         "polipus_q_overflow_data_com_companies_queue_overflow",
+      #         "polipus_q_overflow_googleplus_queue_overflow",
+      #         "polipus_q_overflow_linkedin-companies_queue_overflow",
+      #         "polipus_q_overflow_linkedin_jobs_queue_overflow",
+      #         "polipus_q_overflow_linkedin_jobs_queue_overflow_old",
+      #         "polipus_q_overflow_linkedin_refresh_queue_overflow",
+      #         "system.indexes"
+      # ]
+      #
+      # mongos> db.getCollection("polipus_q_overflow_linkedin_jobs_queue_overflow").find().limit(1)
       # {
-      #   "_id" : ObjectId("544072d0e3d55b0db700021c"),
-      #   "payload" : "{\"url\":\"http://www.linkedin.com/pub/joseph-chanlatte/6/116/374\",\"depth\":0,\"fetched\":false}"
+      #   "_id" : ObjectId("54506b98e3d55b20c40b32d3"),
+      #   "payload" : "{\"url\":\"https://www.linkedin.com/job/product-designer-jobs/?page_num=7&trk=jserp_pagination_next\",\"depth\":6,\"referer\":\"https://www.linkedin.com/job/product-designer-jobs/?page_num=6&trk=jserp_pagination_6\",\"fetched\":false}"
+      # }
+      #
+      # mongos> db.polipus_q_overflow_linkedin_refresh_queue_overflow.find().limit(10)
+      # {
+      #   "_id" : ObjectId("544072b6e3d55b0db7000001"),
+      #   "payload" : "{\"url\":\"http://www.linkedin.com/in/*****\",\"depth\":0,\"fetched\":false}"
       # }
       #
       # We also assume this MonkeyPatch:
