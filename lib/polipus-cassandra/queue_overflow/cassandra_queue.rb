@@ -191,7 +191,13 @@ module Polipus
           statement = "DELETE FROM #{table_} WHERE queue_name = '#{entry['queue_name']}' AND created_at = #{entry['created_at']} ;"
           session.execute(statement)
         end
-        return results.to_enum
+
+        # Let's rispect the API as expected by Polipus.
+        # Otherwise the execute returns a Cassandra::Results::Paged
+        if !results.nil? && results.respond_to?(:count) && results.count == 1
+          return results.first['payload']
+        end
+        return results
       end
 
       alias_method :size, :length
