@@ -242,7 +242,11 @@ module Polipus
         !limit.nil? && limit.respond_to?(:to_i) && limit.to_i > 0
       end
 
+      # results.class => Cassandra::Results::Paged
       def get(limit = 1)
+        # coerce to int if a TrueClass/FalseClass is given.
+        limit = 1 if [true, false].include?(limit)
+
         raise ArgumentError.new("Invalid limit value: must be an INTEGER greater than 1 (got #{limit.inspect}).") unless limit_is_valid?(limit)
         table_ = [keyspace, table].compact.join '.'
         statement = "SELECT queue_name, created_at, payload FROM #{table_} LIMIT #{limit.to_i} ;"
