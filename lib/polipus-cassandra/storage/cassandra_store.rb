@@ -195,7 +195,7 @@ module Polipus
       end
 
       def session
-        @session = @cluster.connect(keyspace)
+        @session ||= @cluster.connect(keyspace)
       end
 
       def table!(properties = nil)
