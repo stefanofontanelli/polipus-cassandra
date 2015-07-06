@@ -158,4 +158,17 @@ describe Polipus::Storage::CassandraStore do
     expect(p.fetched_at).to be 10
     @storage.remove p
   end
+
+  it 'should store two pages and the count will be two' do
+    pages = ['http://www.google.com', 'http://www.duckduckgo.com'].map do |url|
+      page_factory(url).tap do |page|
+        @storage.add(page)
+      end
+    end
+    expect(@storage.count).to be 2
+    pages.each do |page|
+      @storage.remove(page)
+    end
+    expect(@storage.count).to be 0
+  end
 end
