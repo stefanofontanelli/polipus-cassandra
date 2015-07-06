@@ -75,10 +75,19 @@ module Polipus
         @logger = @options[:logger] ||= Logger.new(STDOUT).tap { |l| l.level = Logger::INFO }
       end
 
-      # Length aka Size aka Count is not supported in Cassandra... this is not
-      # your POSQL.
+      # Length aka Size aka Count is supported in Cassandra... like your POSQL
+      # you can COUNT.
+      #
+      # SELECT COUNT (*) FROM keyspace.table_name;
+      #
+      # TBH I'm not sure if being "defensive" and returning 0/nil in case
+      # the results is_empty? ... I'm leaving (now) the code simple and noisy
+      # if something went wrong in the COUNT.
       def length
-        fail('Count is not supported in Cassandra.')
+        table_ = [keyspace, table].compact.join '.'
+        statement = "SELECT COUNT (*) FROM #{table_} ;"
+        result = session.execute(statement)
+        result.first['count']
       end
 
       # Return true if the table has no rows.
