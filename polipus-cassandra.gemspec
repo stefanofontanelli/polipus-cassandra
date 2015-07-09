@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
   spec.name          = 'polipus-cassandra'
-  spec.version       = '0.0.1'
+  spec.version       = '0.1.0'
   spec.authors       = ['Stefano Fontanelli']
   spec.email         = ['s.fontanelli@gmail.com']
   spec.summary       = 'Add support for Cassandra in Polipus crawler'
