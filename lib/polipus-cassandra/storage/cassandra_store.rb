@@ -8,7 +8,31 @@ require 'zlib'
 module Polipus
   module Storage
     class CassandraStore < Base
-      # some doc here
+
+      # CassandraStore wants to persists documents (please ignore the jargon
+      # inherited from MongoDB) like the following JSON-ish entry:
+      #
+      # > db['linkedin-refresh'].find({})
+      #
+      #   {
+      #     "_id" : ObjectId("...."),
+      #     "url" : "https://www.awesome.org/meh",
+      #     "code" : 200,
+      #     "depth" : 0,
+      #     "referer" : "",
+      #     "redirect_to" : "",
+      #     "response_time" : 1313,
+      #     "fetched" : true,
+      #     "user_data" :
+      #       {
+      #         "imported" : false,
+      #         "is_developer" : false,
+      #         "last_modified" : null
+      #       },
+      #      "fetched_at" : 1434977757,
+      #      "error" : "",
+      #      "uuid" : "4ddce293532ea2454356a4210e61c363"
+      #  }
 
       attr_accessor :cluster, :keyspace, :table
 
@@ -43,11 +67,73 @@ module Polipus
           table_ = [keyspace, table].compact.join '.'
           uuid_ = uuid(page)
           obj = page.to_hash
-          @except.each { |e| obj.delete e.to_s }
-          json = MultiJson.encode(obj)
-          statement = "INSERT INTO #{table_} (uuid, page) VALUES (?, ?);"
-          session.execute(session.prepare(statement),
-                          arguments: [uuid_, Zlib::Deflate.deflate(json)])
+          Array(@except).each { |e| obj.delete(e.to_s) }
+
+          begin
+            BINARY_FIELDS.each do |field|
+              obj[field] = obj[field].to_s.encode('UTF-8', {
+                invalid: :replace,
+                undef: :replace,
+                replace: '?' }) if can_be_converted?(obj[field])
+              # ec = Encoding::Converter.new("ASCII-8BIT", "UTF-8")
+              # obj[field] = ec.convert(obj[field]) if can_be_converted?(obj[field])
+              # obj[field] = obj[field].force_encoding('ASCII-8BIT').force_encoding('UTF-8') if can_be_converted?(obj[field])
+            end
+
+            json = MultiJson.encode(obj)
+
+            url = obj.fetch('url', nil)
+            code = obj.fetch('code', nil)
+            depth = obj.fetch('depth', nil)
+            referer = obj.fetch('referer', nil)
+            redirectto = obj.fetch('redirect_to', nil)
+            response_time = obj.fetch('response_time', nil)
+            fetched = obj.fetch('fetched', nil)
+            error = obj.fetch('error', nil)
+            page = Zlib::Deflate.deflate(json)
+
+            if obj.has_key?('user_data') && !obj['user_data'].empty?
+              user_data = MultiJson.encode(obj['user_data'])
+            else
+              user_data = nil
+            end
+
+            value = obj.fetch('fetched_at', nil)
+            fetched_at = case value
+            when Fixnum
+              Time.at(value)
+            when String
+              Time.parse(value)
+            else
+              nil
+            end
+
+            column_names = %w[ uuid url code depth referer redirect_to response_time fetched user_data fetched_at error page ]
+            values_placeholders = column_names.map{|_| '?'}.join(',')
+            statement = "INSERT INTO #{table_} ( #{column_names.join(',')} ) VALUES (#{values_placeholders});"
+
+            session.execute(
+              session.prepare(statement),
+              arguments: [
+                uuid_,
+                url,
+                code,
+                depth,
+                referer,
+                redirectto,
+                response_time,
+                fetched,
+                user_data,
+                fetched_at,
+                error,
+                page
+              ])
+
+          rescue Encoding::UndefinedConversionError
+            puts $!.error_char.dump
+            puts $!.error_char.encoding
+          end
+
           uuid_
         end
       end
@@ -58,8 +144,14 @@ module Polipus
         session.execute statement
       end
 
+      # TBH I'm not sure if being "defensive" and returning 0/nil in case
+      # the results is_empty? ... I'm leaving (now) the code simple and noisy
+      # if something went wrong in the COUNT.
       def count
-        fail('Count is not supported in Cassandra.')
+        table_ = [keyspace, table].compact.join '.'
+        statement = "SELECT COUNT (*) FROM #{table_} ;"
+        result = session.execute(statement)
+        result.first['count']
       end
 
       def each
@@ -109,12 +201,26 @@ module Polipus
       end
 
       def session
-        @session = @cluster.connect(keyspace)
+        @session ||= @cluster.connect(keyspace)
       end
 
       def table!(properties = nil)
         table_ = [keyspace, table].compact.join '.'
-        def_ = "CREATE TABLE IF NOT EXISTS #{table_} (uuid TEXT PRIMARY KEY, page BLOB)"
+        def_ = "CREATE TABLE IF NOT EXISTS #{table_}
+          (
+            uuid TEXT PRIMARY KEY,
+            url TEXT,
+            code INT,
+            depth INT,
+            referer TEXT,
+            redirect_to TEXT,
+            response_time BIGINT,
+            fetched BOOLEAN,
+            user_data TEXT,
+            fetched_at TIMESTAMP,
+            error TEXT,
+            page BLOB
+          )"
         props = properties.to_a.join(' AND ')
         statement = props.empty? ? "#{def_};" : "#{def_} WITH #{props};"
         session.execute statement
@@ -126,6 +232,12 @@ module Polipus
         page = Page.from_hash(hash)
         page.fetched_at = 0 if page.fetched_at.nil?
         page
+      end
+
+      private
+
+      def can_be_converted?(field)
+        !field.nil? && field.is_a?(String) && !field.empty?
       end
     end
   end

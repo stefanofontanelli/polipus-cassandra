@@ -38,5 +38,7 @@ RSpec.configure do |config|
 end
 
 def page_factory(url, params = {})
+  params[:code] = 200 unless params.has_key?(:code)
+  params[:body] = '<html></html>' unless params.has_key?(:body)
   Polipus::Page.new url, params
 end

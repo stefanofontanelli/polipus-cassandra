@@ -27,4 +27,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'vcr', '~> 2.9.0'
   spec.add_development_dependency 'webmock', '~> 1.20.0'
   spec.add_development_dependency 'coveralls'
+  spec.add_development_dependency 'pry', '~> 0.10.1', '>= 0.10.1'
 end
