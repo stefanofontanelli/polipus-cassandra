@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
 
   spec.add_runtime_dependency 'cassandra-driver', '~> 2.0.1', '>= 2.0.1'
   spec.add_runtime_dependency 'multi_json', '~> 1.11.0', '>= 1.11.0'
-  spec.add_runtime_dependency 'polipus', '~> 0.3', '>= 0.3.0'
+  spec.add_runtime_dependency 'polipus', '>= 0.3.0'
 
   spec.add_development_dependency 'rake', '~> 10.3'
   spec.add_development_dependency 'rspec', '~> 3.1.0'
