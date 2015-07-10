@@ -216,7 +216,7 @@ module Polipus
       alias_method :<<, :push
 
       def keyspace!(replication = nil, durable_writes = true)
-        replication ||= "{'class': 'SimpleStrategy', 'replication_factor': '1'}"
+        replication ||= "{'class': 'SimpleStrategy', 'replication_factor': '3'}"
         statement = "CREATE KEYSPACE IF NOT EXISTS #{keyspace} WITH replication = #{replication} AND durable_writes = #{durable_writes};"
         cluster.connect.execute(statement)
       end
@@ -229,7 +229,7 @@ module Polipus
       #
       # cqlsh> DESCRIBE KEYSPACE polipus_queue_overflow_linkedin ;
       #
-      # CREATE KEYSPACE polipus_queue_overflow_linkedin WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'}  AND durable_writes = true;
+      # CREATE KEYSPACE polipus_queue_overflow_linkedin WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '3'}  AND durable_writes = true;
       #
       # CREATE TABLE polipus_queue_overflow_linkedin.linkedin_overflow (
       #     queue_name text,
