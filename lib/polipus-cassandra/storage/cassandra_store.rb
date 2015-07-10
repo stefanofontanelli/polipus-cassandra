@@ -185,7 +185,7 @@ module Polipus
       end
 
       def keyspace!(replication = nil, durable_writes = true)
-        replication ||= "{'class': 'SimpleStrategy', 'replication_factor': '1'}"
+        replication ||= "{'class': 'SimpleStrategy', 'replication_factor': '3'}"
         statement = "CREATE KEYSPACE IF NOT EXISTS #{keyspace} WITH replication = #{replication} AND durable_writes = #{durable_writes};"
         cluster.connect.execute statement
       end
