@@ -4,9 +4,9 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
   spec.name          = 'polipus-cassandra'
-  spec.version       = '0.1.2'
-  spec.authors       = ['Stefano Fontanelli']
-  spec.email         = ['s.fontanelli@gmail.com']
+  spec.version       = '0.0.2'
+  spec.authors       = ['Stefano Fontanelli', 'Edoardo Rossi']
+  spec.email         = ['s.fontanelli@gmail.com', 'edoardo@gild.com']
   spec.summary       = 'Add support for Cassandra in Polipus crawler'
   spec.description   = 'Add support for Cassandra in Polipus crawler'
   spec.homepage      = 'https://github.com/stefanofontanelli/polipus-cassandra'
@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
 
   spec.add_runtime_dependency 'cassandra-driver', '~> 2.0.1', '>= 2.0.1'
   spec.add_runtime_dependency 'multi_json', '~> 1.11.0', '>= 1.11.0'
-  spec.add_runtime_dependency 'polipus', '>= 0.3.0'
+  spec.add_runtime_dependency 'polipus', '~> 0.3', '>= 0.3.0'
 
   spec.add_development_dependency 'rake', '~> 10.3'
   spec.add_development_dependency 'rspec', '~> 3.1.0'
@@ -27,5 +27,4 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'vcr', '~> 2.9.0'
   spec.add_development_dependency 'webmock', '~> 1.20.0'
   spec.add_development_dependency 'coveralls'
-  spec.add_development_dependency 'pry', '~> 0.10.1', '>= 0.10.1'
 end
